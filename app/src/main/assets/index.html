@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buku Kas</title>
+<style>
+:root{
+  --kertas:#EEF3F1; --kartu:#FBFDFC; --tinta:#14293F; --garis:#C3D2D8; --redup:#566B7B;
+  --masuk:#1E6B45; --keluar:#A8321F;
+  --serif:"Noto Serif","Droid Serif",Georgia,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,Roboto,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--kertas);color:var(--tinta);font:16px/1.5 var(--sans);-webkit-tap-highlight-color:transparent}
+main{max-width:560px;margin:0 auto;padding:18px 16px 96px}
+h1,h2{font-family:var(--serif);margin:0;font-weight:700;line-height:1.2}
+h1{font-size:28px}
+h2{font-size:19px;margin-bottom:12px}
+button,input,textarea{font:inherit;color:var(--tinta)}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #2F7FD1;outline-offset:2px}
+
+.bulan{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;margin:10px 0 18px}
+.bulan span{text-align:center;font-family:var(--serif);font-weight:700;font-size:18px}
+.bulan button{height:44px;border:1px solid var(--garis);background:var(--kartu);border-radius:8px;font-size:26px;line-height:1}
+
+.neraca{margin:0 0 26px;border-top:2px solid var(--tinta)}
+.r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px solid var(--garis)}
+.r dt{color:var(--redup)}
+.r dd{margin:0;font-family:var(--serif);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.r dd.in{color:var(--masuk)}
+.r dd.out,.r dd.neg{color:var(--keluar)}
+.r.selisih{border-top:1.5px solid var(--tinta);border-bottom:none}
+.r.saldo{padding-bottom:12px;border-bottom:5px double var(--tinta)}
+.r.saldo dt{color:var(--tinta);font-weight:600}
+.r.saldo dd{font-size:22px}
+
+.catat{margin-bottom:28px}
+label{display:block;margin:14px 0 6px;font-weight:600}
+input[type=text],input[type=date],textarea{width:100%;min-height:48px;padding:10px 12px;border:1px solid var(--garis);border-radius:8px;background:var(--kartu)}
+#nominal{font-family:var(--serif);font-size:22px;font-weight:700}
+.jenis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg{min-height:48px;border:1.5px solid var(--garis);background:var(--kartu);border-radius:8px;font-weight:600}
+.seg.aktif.out{background:var(--keluar);border-color:var(--keluar);color:#fff}
+.seg.aktif.in{background:var(--masuk);border-color:var(--masuk);color:#fff}
+.utama{width:100%;min-height:52px;margin-top:18px;border:0;border-radius:8px;background:var(--tinta);color:#fff;font-weight:700;font-size:17px}
+.utama:active{opacity:.85}
+
+.daftar{list-style:none;margin:0;padding:0;border-top:2px solid var(--tinta)}
+.baris{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:start;padding:12px 0;border-bottom:1px solid var(--garis)}
+.tgl{text-align:center;line-height:1.1}
+.tgl-hari{display:block;font-family:var(--serif);font-size:22px;font-weight:700}
+.tgl-bulan{display:block;font-size:13px;color:var(--redup)}
+.ket{padding-top:2px;overflow-wrap:anywhere}
+.nilai{text-align:right}
+.angka{display:block;font-family:var(--serif);font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.nilai.in .angka{color:var(--masuk)}
+.nilai.out .angka{color:var(--keluar)}
+.hapus{min-height:40px;margin-top:2px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--redup);font-size:14px;text-decoration:underline}
+.hapus.siap{background:var(--keluar);color:#fff;text-decoration:none}
+.kosong{margin:0;padding:16px 0;color:var(--redup);border-top:2px solid var(--tinta)}
+
+.cadangan{margin-top:30px;padding-top:8px;border-top:1px solid var(--garis)}
+.cadangan summary{display:flex;align-items:center;min-height:44px;font-weight:600;cursor:pointer}
+.cadangan p{margin:4px 0 10px;color:var(--redup);font-size:14px}
+textarea{font-size:13px}
+.aksi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.sekunder{min-height:48px;border:1.5px solid var(--tinta);border-radius:8px;background:transparent;font-weight:600}
+
+.pesan{position:fixed;left:16px;right:16px;bottom:16px;max-width:528px;margin:0 auto;padding:12px 14px;border-radius:8px;background:var(--tinta);color:#fff;font-size:15px;box-shadow:0 2px 10px rgba(20,41,63,.3);z-index:10}
+.pesan.galat{background:var(--keluar)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Buku Kas</h1>
+  <div class="bulan">
+    <button type="button" id="prev" aria-label="Bulan sebelumnya">&lsaquo;</button>
+    <span id="bulan-label"></span>
+    <button type="button" id="next" aria-label="Bulan berikutnya">&rsaquo;</button>
+  </div>
+
+  <dl class="neraca">
+    <div class="r"><dt>Masuk bulan ini</dt><dd id="sum-in" class="in">Rp 0</dd></div>
+    <div class="r"><dt>Keluar bulan ini</dt><dd id="sum-out" class="out">Rp 0</dd></div>
+    <div class="r selisih"><dt>Selisih bulan ini</dt><dd id="sum-diff">Rp 0</dd></div>
+    <div class="r saldo"><dt>Saldo seluruhnya</dt><dd id="sum-all">Rp 0</dd></div>
+  </dl>
+
+  <section class="catat">
+    <h2>Catat transaksi</h2>
+    <div class="jenis" role="group" aria-label="Jenis transaksi">
+      <button type="button" id="btn-out" class="seg out aktif" aria-pressed="true">Pengeluaran</button>
+      <button type="button" id="btn-in" class="seg in" aria-pressed="false">Pemasukan</button>
+    </div>
+    <label for="nominal">Nominal (Rp)</label>
+    <input id="nominal" type="text" inputmode="numeric" autocomplete="off" placeholder="25.000">
+    <label for="ket">Keterangan</label>
+    <input id="ket" type="text" maxlength="80" autocomplete="off" placeholder="Makan siang">
+    <label for="tanggal">Tanggal</label>
+    <input id="tanggal" type="date">
+    <button type="button" id="simpan" class="utama">Simpan catatan</button>
+  </section>
+
+  <section>
+    <h2>Catatan bulan ini</h2>
+    <p id="kosong" class="kosong" hidden>Belum ada catatan di bulan ini. Isi nominal di atas, lalu ketuk Simpan catatan.</p>
+    <ul id="daftar" class="daftar"></ul>
+  </section>
+
+  <details class="cadangan">
+    <summary>Cadangan data</summary>
+    <p>Buat teks cadangan, lalu simpan di tempat aman. Kalau aplikasi dihapus atau diganti, tempel teks itu di kotak ini dan ketuk Pulihkan.</p>
+    <textarea id="cadangan-teks" rows="4" spellcheck="false" aria-label="Teks cadangan"></textarea>
+    <div class="aksi">
+      <button type="button" id="btn-cadangan" class="sekunder">Buat cadangan</button>
+      <button type="button" id="btn-pulihkan" class="sekunder">Pulihkan</button>
+    </div>
+  </details>
+</main>
+<div id="pesan" class="pesan" role="status" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var KEY = 'buku_kas_v1';
+  var BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  var BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  var MINUS = '\u2212';
+
+  var data = [];
+  var jenis = 'out';
+  var sekarang = new Date();
+  var tahunLihat = sekarang.getFullYear();
+  var bulanLihat = sekarang.getMonth();
+  var hapusMenunggu = null;
+  var hapusTimer = null;
+  var pulihSiap = false;
+  var pulihTimer = null;
+  var pesanTimer = null;
+  var penyimpananOk = true;
+
+  function $(id) { return document.getElementById(id); }
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function hariIni() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+  function angka(n) { return String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  function rupiah(n) { return (n < 0 ? MINUS : '') + 'Rp ' + angka(n); }
+  function buat(tag, kelas, teks) {
+    var e = document.createElement(tag);
+    if (kelas) { e.className = kelas; }
+    if (teks !== undefined) { e.textContent = teks; }
+    return e;
+  }
+  function idBaru() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  function bersihkan(arr) {
+    if (!Array.isArray(arr)) { return null; }
+    var hasil = [];
+    for (var i = 0; i < arr.length; i++) {
+      var t = arr[i];
+      if (!t || (t.type !== 'in' && t.type !== 'out')) { return null; }
+      var jumlah = Number(t.amount);
+      if (!isFinite(jumlah) || jumlah <= 0) { return null; }
+      if (typeof t.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(t.date)) { return null; }
+      hasil.push({
+        id: String(t.id || (idBaru() + i)),
+        type: t.type,
+        amount: Math.round(jumlah),
+        note: typeof t.note === 'string' ? t.note.slice(0, 80) : '',
+        date: t.date
+      });
+    }
+    return hasil;
+  }
+
+  function muat() {
+    try {
+      var mentah = localStorage.getItem(KEY);
+      if (!mentah) { return []; }
+      return bersihkan(JSON.parse(mentah)) || [];
+    } catch (e) {
+      penyimpananOk = false;
+      return [];
+    }
+  }
+
+  function simpanData() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(data));
+      return true;
+    } catch (e) {
+      penyimpananOk = false;
+      tampilPesan('Data tidak bisa disimpan di HP ini.', true);
+      return false;
+    }
+  }
+
+  function tampilPesan(teks, galat) {
+    var m = $('pesan');
+    m.textContent = teks;
+    m.className = 'pesan' + (galat ? ' galat' : '');
+    m.hidden = false;
+    clearTimeout(pesanTimer);
+    pesanTimer = setTimeout(function () { m.hidden = true; }, 3500);
+  }
+
+  function kunciBulan() { return tahunLihat + '-' + pad(bulanLihat + 1); }
+
+  function gambarRingkasan() {
+    var kunci = kunciBulan();
+    var masuk = 0, keluar = 0, totalMasuk = 0, totalKeluar = 0;
+    data.forEach(function (t) {
+      if (t.type === 'in') { totalMasuk += t.amount; } else { totalKeluar += t.amount; }
+      if (t.date.slice(0, 7) === kunci) {
+        if (t.type === 'in') { masuk += t.amount; } else { keluar += t.amount; }
+      }
+    });
+    $('bulan-label').textContent = BULAN[bulanLihat] + ' ' + tahunLihat;
+    $('sum-in').textContent = rupiah(masuk);
+    $('sum-out').textContent = rupiah(-keluar);
+    var selisih = masuk - keluar;
+    var saldo = totalMasuk - totalKeluar;
+    $('sum-diff').textContent = rupiah(selisih);
+    $('sum-diff').className = selisih < 0 ? 'neg' : '';
+    $('sum-all').textContent = rupiah(saldo);
+    $('sum-all').className = saldo < 0 ? 'neg' : '';
+  }
+
+  function gambarDaftar() {
+    var kotak = $('daftar');
+    kotak.textContent = '';
+    var kunci = kunciBulan();
+    var baris = data.filter(function (t) { return t.date.slice(0, 7) === kunci; });
+    baris.sort(function (a, b) {
+      if (a.date !== b.date) { return a.date < b.date ? 1 : -1; }
+      return a.id < b.id ? 1 : (a.id > b.id ? -1 : 0);
+    });
+    $('kosong').hidden = baris.length > 0;
+    kotak.hidden = baris.length === 0;
+    baris.forEach(function (t) {
+      var li = buat('li', 'baris');
+      var tgl = buat('div', 'tgl');
+      tgl.appendChild(buat('span', 'tgl-hari', String(parseInt(t.date.slice(8, 10), 10))));
+      tgl.appendChild(buat('span', 'tgl-bulan', BULAN_PENDEK[parseInt(t.date.slice(5, 7), 10) - 1] || ''));
+      var ket = buat('div', 'ket', t.note || (t.type === 'in' ? 'Pemasukan' : 'Pengeluaran'));
+      var nilai = buat('div', 'nilai ' + t.type);
+      nilai.appendChild(buat('span', 'angka', (t.type === 'in' ? '+' : MINUS) + angka(t.amount)));
+      var siap = hapusMenunggu === t.id;
+      var tombol = buat('button', siap ? 'hapus siap' : 'hapus', siap ? 'Yakin hapus?' : 'Hapus');
+      tombol.type = 'button';
+      tombol.addEventListener('click', function () { hapusCatatan(t.id); });
+      nilai.appendChild(tombol);
+      li.appendChild(tgl);
+      li.appendChild(ket);
+      li.appendChild(nilai);
+      kotak.appendChild(li);
+    });
+  }
+
+  function gambar() {
+    gambarRingkasan();
+    gambarDaftar();
+  }
+
+  function hapusCatatan(id) {
+    clearTimeout(hapusTimer);
+    if (hapusMenunggu === id) {
+      hapusMenunggu = null;
+      data = data.filter(function (t) { return t.id !== id; });
+      simpanData();
+      tampilPesan('Catatan dihapus.');
+    } else {
+      hapusMenunggu = id;
+      hapusTimer = setTimeout(function () { hapusMenunggu = null; gambar(); }, 3000);
+    }
+    gambar();
+  }
+
+  function pilihJenis(j) {
+    jenis = j;
+    $('btn-out').classList.toggle('aktif', j === 'out');
+    $('btn-in').classList.toggle('aktif', j === 'in');
+    $('btn-out').setAttribute('aria-pressed', j === 'out' ? 'true' : 'false');
+    $('btn-in').setAttribute('aria-pressed', j === 'in' ? 'true' : 'false');
+  }
+
+  function simpanCatatan() {
+    var digit = $('nominal').value.replace(/\D/g, '');
+    var jumlah = digit ? parseInt(digit, 10) : 0;
+    if (!jumlah) {
+      tampilPesan('Isi nominal dulu, misalnya 25.000.', true);
+      $('nominal').focus();
+      return;
+    }
+    var tgl = $('tanggal').value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl)) { tgl = hariIni(); }
+    var catatan = $('ket').value.replace(/\s+/g, ' ').trim().slice(0, 80);
+    data.push({ id: idBaru(), type: jenis, amount: jumlah, note: catatan, date: tgl });
+    if (simpanData()) { tampilPesan('Tersimpan.'); }
+    $('nominal').value = '';
+    $('ket').value = '';
+    tahunLihat = parseInt(tgl.slice(0, 4), 10);
+    bulanLihat = parseInt(tgl.slice(5, 7), 10) - 1;
+    hapusMenunggu = null;
+    gambar();
+  }
+
+  function geserBulan(arah) {
+    bulanLihat += arah;
+    if (bulanLihat < 0) { bulanLihat = 11; tahunLihat -= 1; }
+    if (bulanLihat > 11) { bulanLihat = 0; tahunLihat += 1; }
+    hapusMenunggu = null;
+    gambar();
+  }
+
+  function buatCadangan() {
+    var kotak = $('cadangan-teks');
+    kotak.value = JSON.stringify(data);
+    kotak.focus();
+    kotak.select();
+    var tersalin = false;
+    try { kotak.setSelectionRange(0, kotak.value.length); } catch (e) { /* abaikan */ }
+    try { tersalin = document.execCommand('copy'); } catch (e) { /* abaikan */ }
+    tampilPesan(tersalin ? 'Teks cadangan sudah disalin. Simpan di tempat aman.' : 'Salin teks di kotak itu, lalu simpan di tempat aman.');
+  }
+
+  function pulihkan() {
+    var tombol = $('btn-pulihkan');
+    var teks = $('cadangan-teks').value.trim();
+    if (!teks) { tampilPesan('Tempel teks cadangan di kotak dulu.', true); return; }
+    var arr = null;
+    try { arr = JSON.parse(teks); } catch (e) { arr = null; }
+    var hasil = bersihkan(arr);
+    if (!hasil) { tampilPesan('Teks cadangan tidak dikenali. Pastikan tertempel utuh.', true); return; }
+    if (!pulihSiap) {
+      pulihSiap = true;
+      tombol.textContent = 'Yakin? Data sekarang diganti';
+      clearTimeout(pulihTimer);
+      pulihTimer = setTimeout(function () { pulihSiap = false; tombol.textContent = 'Pulihkan'; }, 4000);
+      return;
+    }
+    clearTimeout(pulihTimer);
+    pulihSiap = false;
+    tombol.textContent = 'Pulihkan';
+    data = hasil;
+    simpanData();
+    tampilPesan('Data dipulihkan: ' + hasil.length + ' catatan.');
+    gambar();
+  }
+
+  function saatNominalDiketik() {
+    var digit = this.value.replace(/\D/g, '').slice(0, 12).replace(/^0+(?=\d)/, '');
+    this.value = digit ? angka(parseInt(digit, 10)) : '';
+  }
+
+  function mulai() {
+    data = muat();
+    $('tanggal').value = hariIni();
+    $('btn-out').addEventListener('click', function () { pilihJenis('out'); });
+    $('btn-in').addEventListener('click', function () { pilihJenis('in'); });
+    $('simpan').addEventListener('click', simpanCatatan);
+    $('prev').addEventListener('click', function () { geserBulan(-1); });
+    $('next').addEventListener('click', function () { geserBulan(1); });
+    $('nominal').addEventListener('input', saatNominalDiketik);
+    $('btn-cadangan').addEventListener('click', buatCadangan);
+    $('btn-pulihkan').addEventListener('click', pulihkan);
+    gambar();
+    if (!penyimpananOk) {
+      tampilPesan('Penyimpanan tidak tersedia. Catatan akan hilang saat aplikasi ditutup.', true);
+    }
+  }
+
+  mulai();
+})();
+</script>
+</body>
+</html>
